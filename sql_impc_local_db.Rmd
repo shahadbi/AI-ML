@@ -1,0 +1,76 @@
+---
+title: "Untitled"
+output: html_document
+date: "2025-01-04"
+---
+
+```{r}
+# Load required libraries
+library(RMySQL)
+library(readr)
+library(readxl)
+
+# Database credentials
+db_user <- "root"
+db_password <- "DB_PASSWORD"
+db_name <- "impc_local_db"
+db_host <- "localhost"
+
+# File paths
+filtered_data_file <- "~/Documents/filtered_aggregated_data.csv"
+disease_info_file <- "~/Downloads/Disease_Information.xlsx"
+parameter_desc_file <- "~/Downloads/IMPC_Parameter_Description.xlsx"
+query_genes_file <- "~/Downloads/query_genes.csv"
+procedure_file <- "~/Downloads/IMPC_procedure.xlsx"
+
+# Connect to MySQL server
+con <- dbConnect(MySQL(), user = db_user, password = db_password, host = db_host)
+
+# Create the database and use it
+dbSendQuery(con, paste0("CREATE DATABASE IF NOT EXISTS ", db_name))
+dbSendQuery(con, paste0("USE ", db_name))
+
+# Create and populate tables
+dbSendQuery(con, "
+  CREATE TABLE IF NOT EXISTS filtered_aggregated_data (
+    analysis_id VARCHAR(255),
+    gene_accession_id VARCHAR(255),
+    gene_symbol VARCHAR(255),
+    mouse_strain VARCHAR(255),
+    mouse_life_stage VARCHAR(255),
+    parameter_id VARCHAR(255),
+    parameter_name VARCHAR(255),
+    pvalue FLOAT
+  )
+")
+filtered_data <- read.csv(filtered_data_file)
+dbWriteTable(con, "filtered_aggregated_data", filtered_data, overwrite = TRUE, row.names = FALSE)
+
+# Populate Disease_Information
+disease_info <- read_excel(disease_info_file)
+dbWriteTable(con, "Disease_Information", disease_info, overwrite = TRUE, row.names = FALSE)
+
+# Populate IMPC_Parameter_Description
+parameter_desc <- read_excel(parameter_desc_file)
+dbWriteTable(con, "IMPC_Parameter_Description", parameter_desc, overwrite = TRUE, row.names = FALSE)
+
+# Create and populate query_genes
+dbSendQuery(con, "
+  CREATE TABLE IF NOT EXISTS query_genes (
+    gene_name VARCHAR(255)
+  )
+")
+query_genes <- read.csv(query_genes_file)
+dbWriteTable(con, "query_genes", query_genes, overwrite = TRUE, row.names = FALSE)
+
+# Populate IMPC_procedure
+procedure_data <- read_excel(procedure_file)
+dbWriteTable(con, "IMPC_procedure", procedure_data, overwrite = TRUE, row.names = FALSE)
+
+# Close the connection
+dbDisconnect(con)
+
+cat("Database created and populated successfully!")
+
+```
+
